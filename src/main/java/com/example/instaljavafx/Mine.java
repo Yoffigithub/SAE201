@@ -14,4 +14,4 @@ public class Mine extends Batiment {
         }
         return false;
     }
-
+}
