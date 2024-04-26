@@ -1,4 +1,4 @@
-package fr.uphf.sae201;
+package com.example.instaljavafx;
 
 public class Mine extends Batiment {
 
