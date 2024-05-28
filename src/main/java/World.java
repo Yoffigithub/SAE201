@@ -1,4 +1,4 @@
-package adrien.s201;
+package adrien.sae_201;
 import javax.swing.*;
 import java.util.ArrayList;
 import java.util.List;

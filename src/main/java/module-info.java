@@ -1,4 +1,4 @@
-module adrien.s201 {
+module adrien.sae_201 {
     requires javafx.controls;
     requires javafx.fxml;
 
@@ -6,6 +6,6 @@ module adrien.s201 {
     requires com.dlsc.formsfx;
     requires java.desktop;
 
-    opens adrien.s201 to javafx.fxml;
-    exports adrien.s201;
+    opens adrien.sae_201 to javafx.fxml;
+    exports adrien.sae_201;
 }

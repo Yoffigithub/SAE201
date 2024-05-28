@@ -1,4 +1,4 @@
-package adrien.s201;
+package adrien.sae_201;
 
 public class Robot {
     private static int idCounter = 1;
