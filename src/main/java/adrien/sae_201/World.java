@@ -1,11 +1,12 @@
 package adrien.sae_201;
-import javax.swing.*;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.Scanner;
 
 public class World {
+    private static List<Mine> mines = new ArrayList<>();
     public static void main(String[] args) {
         int sectors = 10;
         int totalSectors = sectors * sectors;
@@ -26,6 +27,12 @@ public class World {
                 grid[i][j] = " ";
             }
         }
+
+        // test
+        //grid[0][1] = "01";
+        //grid[1][1] = "11";
+        //grid[0][0] = "00";
+        //grid[0][3] = "03";
 
         // Crée une liste pour stocker les mines
         List<Mine> mines = new ArrayList<>();
@@ -144,147 +151,113 @@ public class World {
             System.out.println("R" + robotInfo.getId() + " : (" + robotInfo.getX() / 2 + ", " + robotInfo.getY() / 2 + ")" + " | Type : " + robotInfo.getType() + " | " + robotInfo.getCurrentLoad() + " / " + robotInfo.getStorageCapacity());
         }
 
-        // Contrôle des robots par l'utilisateur
-        String command = "";
-        robotLoop:
+        // Affiche les informations après chaque tour
         while (true) {
-            // Itère sur chaque robot
             for (Robot robot : robots) {
-                boolean moveSuccessful = false;
-                while (!moveSuccessful) {
-                    System.out.println("\nEntrez une commande pour déplacer le robot " + robot.getId() + " (N: Nord, E: Est, S: Sud, O: Ouest, M: Miner, D: Deposer Q: Quitter):");
-                    command = scanner.nextLine().toUpperCase();
+                if (robot.getCurrentLoad() == 0) {
+                    // Trouver le chemin vers la mine la plus proche
+                    Mine closestMine = findClosestMine(robot, mines);
+                    if (closestMine != null) {
+                        // Réserver la mine
+                        closestMine.setReserved(true);
+                        List<int[]> pathToMine = Dijkstra.findPath(grid, robot.getX(), robot.getY(), closestMine.getX() - 1, closestMine.getY());
+                        if (pathToMine != null) {
+                            robot.followPath(grid, pathToMine);
+                            robot.extract(closestMine);
 
-                    // Vérifie si l'utilisateur souhaite quitter
-                    if (command.equals("Q")) {
-                        moveSuccessful = true; // Permet de sortir de la boucle interne
-                        break;
+                            // Après avoir extrait, déplacer le robot en dessous de la mine
+                            grid[robot.getX() + 2][robot.getY()] = "R";
+                            grid[robot.getX() + 2][robot.getY() + 1] = Integer.toString(robot.getId());
+
+                            // Réinitialiser la position précédente du robot
+                            grid[robot.getX()][robot.getY()] = " ";
+                            grid[robot.getX()][robot.getY() + 1] = " ";
+                            robot.setX(robot.getX() + 2); // Mettre à jour les coordonnées du robot
+                        } else {
+                            System.out.println("Chemin non trouvé vers la mine " + closestMine.getId() + ". Le robot reste sur place.");
+                        }
+                        // Libérer la mine après extraction
+                        closestMine.setReserved(false);
                     }
-
-                    // Efface les anciennes positions du robot
-                    grid[robot.getX()][robot.getY()] = " ";
-                    grid[robot.getX()][robot.getY() + 1] = " ";
-
-                    // Déplace le robot en fonction de la commande
-                    //boolean moveSuccessful = false;
-                    boolean actionSuccessful = false;
-
-                    switch (command) {
-                        case "N":
-                            moveSuccessful = robot.moveNorth(grid);
-                            if (!moveSuccessful) {
-                                System.out.println("Erreur, déplacement impossible vers le nord. Réessayez.");
-                            }
-                            break;
-                        case "E":
-                            moveSuccessful = robot.moveEast(grid);
-                            if (!moveSuccessful) {
-                                System.out.println("Erreur, déplacement impossible vers l'est. Réessayez.");
-                            }
-                            break;
-                        case "S":
-                            moveSuccessful = robot.moveSouth(grid);
-                            if (!moveSuccessful) {
-                                System.out.println("Erreur, déplacement impossible vers le sud. Réessayez.");
-                            }
-                            break;
-                        case "O":
-                            moveSuccessful = robot.moveWest(grid);
-                            if (!moveSuccessful) {
-                                System.out.println("Erreur, déplacement impossible vers l'ouest. Réessayez.");
-                            }
-                            break;
-                        case "M": // Extraction
-                            for (Mine mine : mines) {
-                                if (robot.getX() - 1 == mine.getX() && robot.getY() == mine.getY()) {
-                                    if (robot.getCurrentLoad() >= robot.getStorageCapacity()) {
-                                        System.out.println("Le robot ne peut pas extraire plus de minerais. Capacité maximale atteinte.");
-                                    }
-                                    if (mine.getNbM() == 0) {
-                                        System.out.println("La mine est vide. Aucun minerai ne peut être extrait.");
-                                        continue robotLoop; // Redemande une action au même robot
-                                    }
-                                    else {
-                                        robot.extract(mine);
-                                        actionSuccessful = true;
-                                        moveSuccessful = true;
-                                    }
-                                    break;
-                                }
-                            }
-                            if (!actionSuccessful) {
-                                System.out.println("Erreur, le robot ne peut pas effectuer d'action ici.");
-                            }
-                            break;
-                        case "D":
-                            for (Warehouse warehouse : warehouses) {
-                                if (robot.getX() - 1 == warehouse.getX() && robot.getY() == warehouse.getY()) {
-                                    if (robot.getCurrentLoad() == 0) {
-                                        System.out.println("Le robot n'a pas de minerais à déposer.");
-                                    }
-                                    else {
-                                        robot.deposit(warehouse);
-                                        actionSuccessful = true;
-                                        moveSuccessful = true;
-                                    }
-                                    break;
-                                }
-                            }
-                            if (!actionSuccessful) {
-                                System.out.println("Erreur, le robot ne peut pas effectuer d'action ici.");
-                            }
-                            break;
-                        default:
-                            System.out.println("Commande invalide. Veuillez entrer N, E, S, O, M ou D.");
-                            break;
-                    }
-
-                    // Si une action ou un déplacement est réussi, passez au robot suivant
-                    if (moveSuccessful || actionSuccessful) {
-                        continue;
-                    }
-
-                    // Si le déplacement n'est pas réussi, réaffiche les anciennes positions du robot
-                    if (!moveSuccessful) {
-                        grid[robot.getX()][robot.getY()] = "R";
-                        grid[robot.getX()][robot.getY() + 1] = Integer.toString(robot.getId());
+                } else {
+                    // Trouver le chemin vers l'entrepôt le plus proche
+                    Warehouse closestWarehouse = findClosestWarehouse(robot, warehouses);
+                    if (closestWarehouse != null) {
+                        List<int[]> pathToWarehouse = Dijkstra.findPath(grid, robot.getX(), robot.getY(), closestWarehouse.getX() - 1, closestWarehouse.getY());
+                        if (pathToWarehouse != null) {
+                            robot.followPath(grid, pathToWarehouse);
+                            robot.deposit(closestWarehouse);
+                        } else {
+                            System.out.println("Chemin non trouvé vers l'entrepôt " + closestWarehouse.getId() + ". Le robot reste sur place.");
+                        }
                     }
                 }
+            }
 
-                // Met à jour la nouvelle position du robot dans la grille
-                if (moveSuccessful && !command.equals("Q")) {
-                    grid[robot.getX()][robot.getY()] = "R";
-                    grid[robot.getX()][robot.getY() + 1] = Integer.toString(robot.getId());
-                }
+            printGrid(grid, sectors);
+            // Affiche les informations après chaque tour
+            System.out.println("\nTour " + ++tour);
 
-                // Affiche la grille mise à jour avec le déplacement du robot
-                printGrid(grid, sectors);
+            System.out.println("\nInformations des mines :");
+            for (Mine mine : mines) {
+                System.out.println("M" + mine.getId() + " : (" + mine.getX() / 2 + ", " + mine.getY() / 2 + ")" + " | Type : " + mine.getType() + " | " + mine.getNbM() + " / " + mine.getInitNbM());
+            }
 
-                // Affiche les informations après chaque tour
-                System.out.println("\nTour " + ++tour);
+            System.out.println("\nInformations des entrepots :");
+            for (Warehouse warehouse : warehouses) {
+                System.out.println("E" + warehouse.getId() + " : (" + warehouse.getX() / 2 + ", " + warehouse.getY() / 2 + ")" + " | Type : " + warehouse.getType() + " | " + warehouse.getNbM());
+            }
 
-                System.out.println("\nInformations des mines :");
-                for (Mine mine : mines) {
-                    System.out.println("M" + mine.getId() + " : (" + mine.getX() / 2 + ", " + mine.getY() / 2 + ")" + " | Type : " + mine.getType() + " | " + mine.getNbM() + " / " + mine.getInitNbM());
-                }
+            System.out.println("\nInformations des robots :");
+            for (Robot robotInfo : robots) {
+                System.out.println("R" + robotInfo.getId() + " : (" + robotInfo.getX() / 2 + ", " + robotInfo.getY() / 2 + ")" + " | Type : " + robotInfo.getType() + " | " + robotInfo.getCurrentLoad() + " / " + robotInfo.getStorageCapacity());
+            }
+            try {
+                Thread.sleep(1000); // Attendre 1 seconde entre chaque déplacement
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
 
-                System.out.println("\nInformations des entrepots :");
-                for (Warehouse warehouse : warehouses) {
-                    System.out.println("E" + warehouse.getId() + " : (" + warehouse.getX() / 2 + ", " + warehouse.getY() / 2 + ")" + " | Type : " + warehouse.getType() + " | " + warehouse.getNbM());
-                }
+    public static List<Mine> getAvailableMinesOfType(String type) {
+        List<Mine> minesOfType = new ArrayList<>();
+        for (Mine mine : mines) {
+            if (mine.getType().equals(type)) {
+                minesOfType.add(mine);
+            }
+        }
+        return minesOfType;
+    }
 
-                System.out.println("\nInformations des robots :");
-                for (Robot robotInfo : robots) {
-                    System.out.println("R" + robotInfo.getId() + " : (" + robotInfo.getX() / 2 + ", " + robotInfo.getY() / 2 + ")" + " | Type : " + robotInfo.getType() + " | " + robotInfo.getCurrentLoad() + " / " + robotInfo.getStorageCapacity());
-                }
-
-                // Vérifie si l'utilisateur a demandé à quitter
-                if (command.equals("Q")) {
-                    scanner.close();
-                    break;
+    private static Mine findClosestMine(Robot robot, List<Mine> mines) {
+        Mine closestMine = null;
+        int shortestDistance = Integer.MAX_VALUE;
+        for (Mine mine : mines) {
+            if (mine.getType().equals(robot.getType()) && mine.getNbM() > 0) {
+                int distance = Math.abs(robot.getX() - mine.getX()) + Math.abs(robot.getY() - mine.getY());
+                if (distance < shortestDistance) {
+                    shortestDistance = distance;
+                    closestMine = mine;
                 }
             }
         }
+        return closestMine;
+    }
+
+    private static Warehouse findClosestWarehouse(Robot robot, List<Warehouse> warehouses) {
+        Warehouse closestWarehouse = null;
+        int shortestDistance = Integer.MAX_VALUE;
+        for (Warehouse warehouse : warehouses) {
+            if (warehouse.getType().equals(robot.getType())) {
+                int distance = Math.abs(robot.getX() - warehouse.getX()) + Math.abs(robot.getY() - warehouse.getY());
+                if (distance < shortestDistance) {
+                    shortestDistance = distance;
+                    closestWarehouse = warehouse;
+                }
+            }
+        }
+        return closestWarehouse;
     }
 
     private static void printGrid(String[][] grid, int sectors) {

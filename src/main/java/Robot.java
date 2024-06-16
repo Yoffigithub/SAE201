@@ -1,5 +1,7 @@
 package adrien.sae_201;
 
+import java.util.List;
+
 public class Robot {
     private static int idCounter = 1;
     private int id;
@@ -46,6 +48,14 @@ public class Robot {
 
     public int getCurrentLoad() {
         return currentLoad;
+    }
+
+    public void setX(int x) {
+        this.x = x;
+    }
+
+    public void setY(int y) {
+        this.y = y;
     }
 
     public boolean canMoveNorth(String[][] grid) {
@@ -106,9 +116,9 @@ public class Robot {
             extractable = Math.min(extractable, storageCapacity - currentLoad);
             mine.setNbM(mine.getNbM() - extractable);
             currentLoad += extractable;
-            System.out.println("Le robot a extrait " + extractable + " minerais.");
+            System.out.println("Le robot" + this.id + " a extrait " + extractable + " minerais.");
         } else {
-            System.out.println("Le robot ne peut pas extraire de minerais ici.");
+            System.out.println("Le robot" + this.id + " ne peut pas extraire de minerais ici.");
         }
     }
 
@@ -117,5 +127,25 @@ public class Robot {
             warehouse.setNbM(warehouse.getNbM() + currentLoad);
             currentLoad = 0;
         }
+    }
+
+    // ajout des 2 methodes
+    public void followPath(String[][] grid, List<int[]> path) {
+        for (int[] step : path) {
+            int nextX = step[0];
+            int nextY = step[1];
+            if (canMoveTo(grid, nextX, nextY)) {
+                grid[this.x][this.y] = " ";
+                grid[this.x][this.y + 1] = " ";
+                this.x = nextX;
+                this.y = nextY;
+                grid[this.x][this.y] = "R";
+                grid[this.x][this.y + 1] = Integer.toString(this.id);
+            }
+        }
+    }
+
+    private boolean canMoveTo(String[][] grid, int x, int y) {
+        return !grid[x][y].equals("X") && !grid[x][y].equals("R") && (x % 2 == 1 && y % 2 == 0);
     }
 }

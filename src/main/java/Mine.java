@@ -10,6 +10,7 @@ public class Mine {
     private String type;
     private int nbM;
     private int initNbM;
+    private boolean reserved;
 
     Random random = new Random();
     public Mine(int id, int x, int y, String type) {
@@ -19,6 +20,7 @@ public class Mine {
         this.type = type;
         this.nbM = random.nextInt(51) + 50;
         this.initNbM = nbM;
+        this.reserved = false;
     }
 
     public int getId() {
@@ -53,6 +55,14 @@ public class Mine {
         Random random = new Random();
         //genere un nb entre 50 et 100
         return random.nextInt(51) + 50;
+    }
+
+    public boolean isReserved() {
+        return reserved;
+    }
+
+    public void setReserved(boolean reserved) {
+        this.reserved = reserved;
     }
 }
 
